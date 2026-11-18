@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>메일 가드</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako_inflate.min.js"></script>
+  <script src="config.js"></script>
+  <script src="rules.js"></script>
+  <script src="taskpane.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0;
+      --danger-bg: #ffebe9; --danger-fg: #a40e26; --danger-bar: #cf222e;
+      --warn-bg: #fff8c5; --warn-fg: #7d4e00; --warn-bar: #d4a72c;
+      --ok-bg: #dafbe1; --ok-fg: #116329; --ok-bar: #1a7f37;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1f1f1f; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d;
+        --danger-bg: #3d1418; --danger-fg: #ff9492; --danger-bar: #f85149;
+        --warn-bg: #3a2e0b; --warn-fg: #e3b341; --warn-bar: #d29922;
+        --ok-bg: #0f2d1a; --ok-fg: #56d364; --ok-bar: #3fb950;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 12px; font: 14px/1.5 "Segoe UI", "Malgun Gothic", sans-serif; background: var(--bg); color: var(--fg); }
+    .card { border-radius: 8px; border-left: 6px solid var(--line); padding: 14px 14px 12px; margin-bottom: 12px; }
+    .card h1 { font-size: 20px; margin: 0 0 6px; }
+    .card p { margin: 0; }
+    .danger { background: var(--danger-bg); color: var(--danger-fg); border-color: var(--danger-bar); }
+    .warn { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bar); }
+    .ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bar); }
+    .wait { border-color: var(--line); color: var(--muted); }
+    h2 { font-size: 13px; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 2px 0; word-break: break-all; }
+    .meta { color: var(--muted); font-size: 12px; word-break: break-all; }
+    .tip { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="result" class="card wait"><h1>검사 중…</h1><p>메일을 확인하고 있습니다.</p></div>
+  <div id="details"></div>
+  <div class="tip">
+    오른쪽 위 <b>압정(📌) 아이콘</b>을 눌러 이 창을 고정하면, 메일을 선택할 때마다 자동으로 검사합니다.<br>
+    메일 내용은 이 PC 안에서만 검사하며 어디로도 보내지 않습니다.
+  </div>
+</body>
+</html>
