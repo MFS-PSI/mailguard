@@ -43,6 +43,15 @@ var MailGuardRules = (function () {
   var MULTI_SUFFIXES = ["co.kr", "or.kr", "ne.kr", "go.kr", "ac.kr", "re.kr", "pe.kr", "co.jp", "ne.jp", "or.jp",
     "co.uk", "org.uk", "com.cn", "com.tw", "com.hk", "com.au", "com.sg", "com.vn", "com.br"];
 
+  // 회사마다 '회사이름.서비스주소'를 받아 쓰는 업무용 서비스 (예: company.atlassian.net, company.sharepoint.com)
+  // 여기서는 앞쪽 회사 이름을 '하위 주소 속임수'로 보지 않음
+  var TENANT_PARENTS = ["atlassian.net", "sharepoint.com", "daouoffice.com", "slack.com", "zendesk.com",
+    "service-now.com", "webex.com", "zoom.us", "notion.site", "monday.com", "box.com", "okta.com", "salesforce.com",
+    "force.com", "my.site.com", "workday.com", "freshdesk.com", "kr.daouoffice.com"];
+
+  // 'coupang.com.evil.net' 처럼 이름 뒤에 .com/.co.kr 등을 붙여 진짜 주소처럼 보이게 하는 경우
+  var TLD_LIKE = ["com", "net", "org", "co", "kr", "go", "or", "ac", "jp", "io"];
+
   var ATTACH_EXTS = [".pdf", ".docx", ".docm", ".xlsx", ".xlsm", ".pptx", ".pptm", ".rtf"];
 
   function domainOf(addr) {
@@ -112,7 +121,12 @@ var MailGuardRules = (function () {
     for (var brand in brands) {
       var info = brands[brand];
       if (isOfficial(domain, info)) continue;
-      if (sd.subs.indexOf(brand) >= 0) return brand + " 사칭(하위 주소 속임수): " + domain;
+      var at = sd.subs.indexOf(brand);
+      if (at >= 0) {
+        var fakeTld = TLD_LIKE.indexOf(sd.subs[at + 1]) >= 0; // coupang.com.evil.net
+        var tenant = TENANT_PARENTS.some(function (p) { return endsWithDomain(domain, p); });
+        if (fakeTld || !tenant) return brand + " 사칭(하위 주소 속임수): " + domain;
+      }
       if (norm.length < 3) continue;
       if (norm === brand || label === brand) return brand + " 사칭(진짜가 아닌 도메인): " + domain;
       if (brand.length < 5) continue; // dhl, daum 같은 짧은 이름은 정확히 같을 때만
