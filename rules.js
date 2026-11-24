@@ -115,7 +115,84 @@ var MailGuardRules = (function () {
     return b;
   }
 
+  /* ── 외국 문자 눈속임 (예: 영어 a 대신 모양이 같은 러시아 문자 а) ─────────── */
+  // 국제 주소(xn--...)를 원래 글자로 풀기 (RFC 3492)
+  function punyDecode(s) {
+    var base = 36, tMin = 1, tMax = 26, n = 128, bias = 72, i = 0, out = [];
+    var b = s.lastIndexOf("-"), j, idx;
+    for (j = 0; j < Math.max(b, 0); j++) out.push(s.charCodeAt(j));
+    for (idx = b > 0 ? b + 1 : 0; idx < s.length;) {
+      var oldi = i, w = 1, k, t;
+      for (k = base; ; k += base) {
+        if (idx >= s.length) throw new Error("bad");
+        var c = s.charCodeAt(idx++);
+        var d = c >= 48 && c <= 57 ? c - 22 : c >= 97 && c <= 122 ? c - 97 : c >= 65 && c <= 90 ? c - 65 : base;
+        if (d >= base) throw new Error("bad");
+        i += d * w;
+        t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
+        if (d < t) break;
+        w *= base - t;
+      }
+      var len = out.length + 1, delta = oldi === 0 ? Math.floor((i - oldi) / 700) : Math.floor((i - oldi) / 2);
+      delta += Math.floor(delta / len);
+      for (k = 0; delta > ((base - tMin) * tMax) >> 1; k += base) delta = Math.floor(delta / (base - tMin));
+      bias = k + Math.floor((base - tMin + 1) * delta / (delta + 38));
+      n += Math.floor(i / len); i %= len;
+      out.splice(i++, 0, n);
+    }
+    return String.fromCodePoint.apply(null, out);
+  }
+
+  function toUnicodeDomain(domain) {
+    try { domain = decodeURIComponent(domain); } catch (e) { /* 그대로 */ }
+    return domain.toLowerCase().split(".").map(function (l) {
+      if (l.indexOf("xn--") !== 0) return l;
+      try { return punyDecode(l.slice(4)); } catch (e) { return l; }
+    }).join(".");
+  }
+
+  // 영어 글자와 모양이 같은 외국 문자 → 영어 글자
+  var CONFUSABLE = {
+    "а": "a", "е": "e", "ё": "e", "к": "k", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x", "і": "i", "ї": "i",
+    "ј": "j", "ѕ": "s", "ԁ": "d", "ԛ": "q", "ԝ": "w", "һ": "h", "ӏ": "l", "ѵ": "v", "ү": "y", "ɡ": "g", "ı": "i",
+    "α": "a", "ο": "o", "ρ": "p", "ν": "v", "ι": "i", "κ": "k", "τ": "t", "υ": "u", "ϲ": "c", "ϳ": "j",
+    "օ": "o", "ս": "u", "ո": "n", "ℓ": "l",
+  };
+  var FOREIGN_LOOKALIKE_SCRIPT = /[Ͱ-ϿЀ-ԯ԰-֏]/; // 그리스·러시아(키릴)·아르메니아 문자
+
+  function skeleton(s) {
+    s = s.normalize ? s.normalize("NFKC").toLowerCase() : s.toLowerCase(); // 전각 ａ → a
+    var out = "";
+    for (var ch of s) out += CONFUSABLE[ch] || ch;
+    return out.normalize ? out.normalize("NFD").replace(/[̀-ͯ]/g, "") : out; // é → e
+  }
+
+  function homoglyphLookalike(domain, brands) {
+    var uni = toUnicodeDomain(domain);
+    if (!/[^\x00-\x7f]/.test(uni)) return null; // 영어 주소면 해당 없음
+    var shown = uni === domain.toLowerCase() ? uni : uni + " (" + domain + ")";
+    var sk = skeleton(uni);
+    if (sk !== uni && /^[\x00-\x7f]+$/.test(sk)) {
+      for (var brand in brands) {
+        if (isOfficial(sk, brands[brand]) || splitDomain(sk).label === brand) {
+          return brand + " 외국 문자 눈속임: " + shown + " → '" + sk + "'처럼 보임";
+        }
+      }
+      var hit = brandLookalikeBasic(sk, brands);
+      if (hit) return "외국 문자 눈속임 + " + hit + " (실제 주소: " + shown + ")";
+    }
+    // 한 이름 안에 영어와 러시아·그리스 문자를 섞은 주소는 정상 사이트에서 거의 쓰지 않음
+    var mixed = uni.split(".").some(function (l) { return /[a-z]/.test(l) && FOREIGN_LOOKALIKE_SCRIPT.test(l); });
+    if (mixed) return "여러 나라 문자를 섞은 가짜 의심 주소: " + shown + " → '" + sk + "'처럼 보임";
+    return null;
+  }
+
   function brandLookalike(domain, brands) {
+    if (!domain || domain.indexOf(".") < 0) return null;
+    return homoglyphLookalike(domain, brands) || brandLookalikeBasic(domain, brands);
+  }
+
+  function brandLookalikeBasic(domain, brands) {
     if (!domain || domain.indexOf(".") < 0) return null;
     var sd = splitDomain(domain), label = sd.label, norm = normalizeLabel(label);
     for (var brand in brands) {
