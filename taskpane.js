@@ -59,13 +59,13 @@
     var notice;
     if (level === "위험") {
       notice = { type: T.ErrorMessage,
-        message: "🔴 [위험] 악성 의심 메일입니다. 링크·첨부파일을 누르지 말고 PI팀에 신고하세요. " + reason };
+        message: "🔴🔴🔴 위험 · 열지 마세요 · PI팀 신고 🔴🔴🔴  " + reason };
     } else if (level === "주의") {
       notice = { type: T.InformationalMessage, icon: "Icon16", persistent: false,
-        message: "🟡 [주의] 외부 메일에 링크가 있습니다. 보낸 사람을 확인하기 전에는 누르지 마세요. " + reason };
+        message: "🟡🟡🟡 주의 · 외부 링크 확인 후 클릭 🟡🟡🟡  " + reason };
     } else {
       notice = { type: T.InformationalMessage, icon: "Icon16", persistent: false,
-        message: "🟢 [정상] 메일 가드 규칙(사칭 주소·외부 링크)에 해당하지 않습니다." };
+        message: "🟢🟢🟢 정상 메일 🟢🟢🟢" };
     }
     notice.message = notice.message.slice(0, 150);
     nm.replaceAsync(NOTICE_KEY, notice, function (r) {
