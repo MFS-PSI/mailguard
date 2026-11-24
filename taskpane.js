@@ -53,12 +53,28 @@
   function setNotice(item, level, reasons) {
     var nm = item.notificationMessages;
     if (!nm) return;
-    if (level === "정상") { nm.removeAsync(NOTICE_KEY); return; }
-    var head = level === "위험"
-      ? "⛔ 악성 의심 메일: 열지 말고 링크·첨부파일을 누르지 마세요. PI팀에 신고하세요."
-      : "⚠ 외부 메일에 링크가 있습니다. 보낸 사람을 확인하기 전에는 클릭하지 마세요.";
-    var msg = (head + " " + (reasons[0] || "").replace(/^\[규칙\d\]\s*/, "")).slice(0, 150);
-    nm.replaceAsync(NOTICE_KEY, { type: Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage, message: msg });
+    // 메일 제목 아래 줄에 세 단계 모두 표시. 줄 색은 Outlook이 정하므로 색 동그라미로 구분
+    var T = Office.MailboxEnums.ItemNotificationMessageType;
+    var reason = (reasons[0] || "").replace(/^\[규칙\d\]\s*/, "");
+    var notice;
+    if (level === "위험") {
+      notice = { type: T.ErrorMessage,
+        message: "🔴 [위험] 악성 의심 메일입니다. 링크·첨부파일을 누르지 말고 PI팀에 신고하세요. " + reason };
+    } else if (level === "주의") {
+      notice = { type: T.InformationalMessage, icon: "Icon16", persistent: false,
+        message: "🟡 [주의] 외부 메일에 링크가 있습니다. 보낸 사람을 확인하기 전에는 누르지 마세요. " + reason };
+    } else {
+      notice = { type: T.InformationalMessage, icon: "Icon16", persistent: false,
+        message: "🟢 [정상] 메일 가드 규칙(사칭 주소·외부 링크)에 해당하지 않습니다." };
+    }
+    notice.message = notice.message.slice(0, 150);
+    nm.replaceAsync(NOTICE_KEY, notice, function (r) {
+      // 아이콘 문제 등으로 실패하면 아이콘 없는 형식으로 다시 시도
+      // (정상은 빨간 오류 모양으로 띄우면 오해를 부르므로 주의만 다시 시도)
+      if (r && r.status !== Office.AsyncResultStatus.Succeeded && level === "주의") {
+        nm.replaceAsync(NOTICE_KEY, { type: T.ErrorMessage, message: notice.message });
+      }
+    });
   }
 
   // ── B안: 메일 목록에 색 태그(범주) 붙이기 ─────────────────────────────
