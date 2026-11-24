@@ -39,12 +39,23 @@
     li { margin: 2px 0; word-break: break-all; }
     .meta { color: var(--muted); font-size: 12px; word-break: break-all; }
     .tip { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; color: var(--muted); font-size: 12px; }
+    /* 정상·대기 상태는 한 줄로 작게 */
+    .card.compact { padding: 8px 10px; margin-bottom: 0; border-left-width: 4px; }
+    .card.compact h1 { font-size: 14px; margin: 0; font-weight: 600; }
+    .card.compact p { display: none; }
+    /* 위험·주의는 크게 */
+    .card.big h1 { font-size: 22px; }
+    .card.big p { font-size: 14px; }
+    .hint { margin-top: 12px; padding: 10px; border: 1px dashed var(--line); border-radius: 6px; font-size: 12px; color: var(--muted); }
+    .hint b { color: var(--fg); }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
-  <div id="result" class="card wait"><h1>검사 중…</h1><p>메일을 확인하고 있습니다.</p></div>
+  <div id="result" class="card wait compact"><h1>검사 중…</h1><p>메일을 확인하고 있습니다.</p></div>
   <div id="details"></div>
-  <div class="tip">
+  <div id="hint" class="hint" hidden></div>
+  <div id="tip" class="tip">
     오른쪽 위 <b>압정(📌) 아이콘</b>을 눌러 이 창을 고정하면, 메일을 선택할 때마다 자동으로 검사합니다.<br>
     메일 내용은 이 PC 안에서만 검사하며 어디로도 보내지 않습니다.
   </div>
