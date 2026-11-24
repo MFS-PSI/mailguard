@@ -369,10 +369,23 @@ var MailGuardRules = (function () {
     };
   }
 
+  // 우리 회사 전용 업무 서비스 주소인가? (예: 회사이름.atlassian.net = 회사 Jira, 회사이름-my.sharepoint.com)
+  // 회사 이름과 '정확히' 같을 때만 인정. 회사이름-support.atlassian.net 처럼 남이 만들 수 있는 주소는 제외
+  function isOwnTenant(domain, ctx) {
+    if (!domain) return false;
+    var labels = ctx.internalDomains.map(function (d) { return splitDomain(d).label; });
+    return TENANT_PARENTS.some(function (p) {
+      if (!endsWithDomain(domain, p) || domain === p) return false;
+      var prefix = domain.slice(0, domain.length - p.length - 1).split(".").pop();
+      return labels.some(function (l) { return l && (prefix === l || (p === "sharepoint.com" && prefix === l + "-my")); });
+    });
+  }
+
   function isExternal(domain, ctx) {
     if (!domain) return false;
     if (ctx.internalDomains.some(function (d) { return endsWithDomain(domain, d); })) return false;
     if (ctx.trustedSystemDomains.indexOf(domain) >= 0) return false;
+    if (isOwnTenant(domain, ctx)) return false;
     return true;
   }
 
