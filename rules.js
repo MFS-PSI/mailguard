@@ -18,7 +18,8 @@ var MailGuardRules = (function () {
                  official: ["microsoft.com", "office.com", "outlook.com", "live.com", "microsoftonline.com",
                             "office365.com", "sharepoint.com", "hotmail.com", "powerbi.com"] },
     apple:     { names: ["애플", "apple", "icloud"], official: ["apple.com", "icloud.com"] },
-    samsung:   { names: ["삼성", "samsung"], official: ["samsung.com", "samsungcard.com", "samsungfire.com", "samsunglife.com", "samsungpop.com", "samsungsds.com"] },
+    samsung:   { names: ["삼성", "samsung"], official: ["samsung.com", "samsungcard.com", "samsungfire.com", "samsunglife.com", "samsungpop.com", "samsungsds.com",
+                 "samsungsem.com", "samsungdisplay.com", "samsungsemiconductor.com"] },
     amazon:    { names: ["아마존", "amazon"], official: ["amazon.com", "amazon.co.jp", "amazonaws.com", "amazon.co.uk"] },
     paypal:    { names: ["페이팔", "paypal"], official: ["paypal.com"] },
     netflix:   { names: ["넷플릭스", "netflix"], official: ["netflix.com"] },
@@ -38,6 +39,48 @@ var MailGuardRules = (function () {
     adobe:     { names: ["adobe", "어도비"], official: ["adobe.com"] },
     linkedin:  { names: ["linkedin", "링크드인"], official: ["linkedin.com"] },
     hometax:   { names: ["국세청", "홈택스"], official: ["hometax.go.kr", "nts.go.kr"] },
+
+    // ── 반도체·PCB 업계 (거래처·고객사 사칭 대비) ──────────────────────────
+    // strict: 이름이 '들어 있기만' 한 주소는 사칭으로 보지 않음 (계열사·현지법인 주소 오탐 방지)
+    // exact : 철자 1글자 차이 비교를 하지 않음 (intel ↔ inter 같은 흔한 단어 오탐 방지)
+    // names 를 비워 둠: 보낸 사람 이름에 업체명을 쓰는 협력사 메일을 위험으로 보지 않도록
+    // 반도체
+    skhynix:   { names: [], strict: true, official: ["skhynix.com", "skhynix.co.kr", "sk.com"] },
+    intel:     { names: [], strict: true, exact: true, official: ["intel.com", "intel.co.kr"] },
+    tsmc:      { names: [], strict: true, official: ["tsmc.com"] },
+    micron:    { names: [], strict: true, official: ["micron.com"] },
+    qualcomm:  { names: [], strict: true, official: ["qualcomm.com"] },
+    nvidia:    { names: [], strict: true, official: ["nvidia.com"] },
+    amd:       { names: [], strict: true, official: ["amd.com"] },
+    broadcom:  { names: [], strict: true, official: ["broadcom.com"] },
+    nxp:       { names: [], strict: true, official: ["nxp.com"] },
+    infineon:  { names: [], strict: true, official: ["infineon.com"] },
+    renesas:   { names: [], strict: true, official: ["renesas.com"] },
+    mediatek:  { names: [], strict: true, official: ["mediatek.com"] },
+    kioxia:    { names: [], strict: true, official: ["kioxia.com"] },
+    asml:      { names: [], strict: true, official: ["asml.com"] },
+    appliedmaterials: { names: [], strict: true, official: ["appliedmaterials.com", "amat.com"] },
+    lamresearch: { names: [], strict: true, official: ["lamresearch.com", "lam.com"] },
+    amkor:     { names: [], strict: true, official: ["amkor.com", "amkor.co.kr"] },
+    dbhitek:   { names: [], strict: true, official: ["dbhitek.com"] },
+    lxsemicon: { names: [], strict: true, official: ["lxsemicon.com"] },
+    sksiltron: { names: [], strict: true, official: ["sksiltron.com", "sk.com"] },
+    hanmisemi: { names: [], strict: true, official: ["hanmisemi.com"] },
+    // PCB·패키지 기판·소재
+    ibiden:    { names: [], strict: true, official: ["ibiden.co.jp", "ibiden.com"] },
+    unimicron: { names: [], strict: true, official: ["unimicron.com"] },
+    shinko:    { names: [], strict: true, official: ["shinko.co.jp", "shinko.com"] },
+    lginnotek: { names: [], strict: true, official: ["lginnotek.com"] },
+    simmtech:  { names: [], strict: true, official: ["simmtech.com", "simmtech.co.kr"] },
+    isupetasys: { names: [], strict: true, official: ["isupetasys.com", "isupetasys.co.kr"] },
+    haesungds: { names: [], strict: true, official: ["haesungds.com"] },
+    kinsus:    { names: [], strict: true, official: ["kinsus.com.tw", "kinsus.com"] },
+    compeq:    { names: [], strict: true, official: ["compeq.com.tw", "compeq.com"] },
+    nanyapcb:  { names: [], strict: true, official: ["nanyapcb.com.tw", "nanyapcb.com"] },
+    ajinomoto: { names: [], strict: true, official: ["ajinomoto.com", "ajinomoto.co.jp"] },
+    resonac:   { names: [], strict: true, official: ["resonac.com"] },
+    panasonic: { names: [], strict: true, official: ["panasonic.com", "panasonic.co.jp", "panasonic.jp"] },
+    doosan:    { names: [], strict: true, official: ["doosan.com"] },
   };
 
   var MULTI_SUFFIXES = ["co.kr", "or.kr", "ne.kr", "go.kr", "ac.kr", "re.kr", "pe.kr", "co.jp", "ne.jp", "or.jp",
@@ -206,12 +249,12 @@ var MailGuardRules = (function () {
       }
       if (norm.length < 3) continue;
       if (norm === brand || label === brand) return brand + " 사칭(진짜가 아닌 도메인): " + domain;
-      if (brand.length < 5) continue; // dhl, daum 같은 짧은 이름은 정확히 같을 때만
+      if (brand.length < 5 || info.exact) continue; // dhl, daum, intel 등은 정확히 같을 때만
       var limit = brand.length < 8 ? 1 : 2;
       if (Math.abs(norm.length - brand.length) <= limit && editDistance(norm, brand) <= limit) {
         return brand + " 철자 바꿔치기: " + domain;
       }
-      if (norm.indexOf(brand) >= 0) return brand + " 이름을 섞은 가짜 도메인: " + domain;
+      if (!info.strict && norm.indexOf(brand) >= 0) return brand + " 이름을 섞은 가짜 도메인: " + domain;
     }
     return null;
   }
